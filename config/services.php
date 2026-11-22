@@ -31,4 +31,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'events_api' => [
+        'create' => env('URL_CREATE_EVENTS'),
+        'show' => env('URL_SHOW_EVENTS_USERS'),
+        'change_status' => env('URL_CHANGE_STATUS_USERS_EVENTS'),
+        'event_users' => env('URL_EVENT_USERS'),
+        'change_pay_status' => env('URL_CHANGE_PAY_STATUS'),
+    ],
+
 ];

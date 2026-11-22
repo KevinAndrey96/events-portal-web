@@ -2,17 +2,20 @@
 
 namespace App\UsesCases\Events;
 
+use App\Repositories\Contracts\Events\EventRepositoryInterface;
 use App\UsesCases\Contracts\Events\GetAllEventsUseCaseInterface;
-use GuzzleHttp\Client;
 
 class GetAllEventsUseCase implements GetAllEventsUseCaseInterface
 {
+    private EventRepositoryInterface $eventRepository;
+
+    public function __construct(EventRepositoryInterface $eventRepository)
+    {
+        $this->eventRepository = $eventRepository;
+    }
+
     public function handle(string $name)
     {
-        $client = new Client();
-        $url = strval(getenv('URL_SHOW_EVENTS_USERS').'?param='.$name);
-        $response = $client->get($url);
-
-        return json_decode($response->getBody(), true);
+        return $this->eventRepository->getAll($name);
     }
 }

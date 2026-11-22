@@ -1,66 +1,189 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Events Portal Web
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![Laravel](https://img.shields.io/badge/Laravel-9.x-FF2D20?style=flat&logo=laravel)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.1+-777BB4?style=flat&logo=php)](https://php.net)
+[![Vite](https://img.shields.io/badge/Vite-3.x-646CFF?style=flat&logo=vite)](https://vitejs.dev/)
+[![QR Scanner](https://img.shields.io/badge/QR%20Scanner-Instascan.js-00A98F?style=flat)](https://github.com/schmich/instascan)
+[![PDF Generation](https://img.shields.io/badge/PDF-DomPDF-orange?style=flat)](https://github.com/barryvdh/laravel-dompdf)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## About Laravel
+A full-stack event scheduling, attendee ticketing, and contactless entrance validation portal engineered in **Laravel 9** and **Vite**. The portal features real-time in-browser camera QR code scanning for physical venue check-in, automated PDF ticket pass generation with dynamic QR codes, receipt attachment validation, and peer-to-peer invitation workflows.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+The application is architected following **Clean Architecture / Hexagonal patterns** (Use Cases, Domain Repositories, Service Providers, and Single-Action Invokable Controllers), communicating directly with the decoupled [go-serverless-events-api](https://github.com/KevinAndrey96/go-serverless-events-api) microservices on AWS Lambda and Amazon DynamoDB.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Architecture Overview
 
-## Learning Laravel
+```mermaid
+flowchart TD
+    User["Attendee / Organizer Browser"]
+    Scanner["Entrance Staff<br/>(Camera / Mobile)"]
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+    subgraph LaravelApp["Events Portal Web (Laravel 9 + Vite)"]
+        Controllers["Invokable Controllers<br/>(Single Responsibility)"]
+        UseCases["Domain Use Cases<br/>(Application Business Rules)"]
+        Repos["Repository Layer<br/>(EventRepositoryInterface)"]
+        Services["Support Services<br/>(DomPDF + SimpleQrCode + Mail)"]
+    end
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+    subgraph ServerlessBackend["Go Serverless Backend (AWS Lambda & DynamoDB)"]
+        APIGW["Amazon API Gateway"]
+        CreateLambda["create-event-api"]
+        ShowLambda["show-events-api"]
+        StatusLambda["change-status-api"]
+        UsersLambda["event-users-api"]
+        PayLambda["change-pay-status-api"]
+        DDB[("Amazon DynamoDB<br/>(Single-Table)")]
+    end
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+    User -->|Web Navigation / Registration| Controllers
+    Scanner -->|Live Camera QR Scan| Controllers
 
-## Laravel Sponsors
+    Controllers --> UseCases
+    UseCases --> Repos
+    Controllers --> Services
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+    Repos -->|HTTP Client / JSON Contracts| APIGW
+    APIGW --> CreateLambda
+    APIGW --> ShowLambda
+    APIGW --> StatusLambda
+    APIGW --> UsersLambda
+    APIGW --> PayLambda
 
-### Premium Partners
+    CreateLambda --> DDB
+    ShowLambda --> DDB
+    StatusLambda --> DDB
+    UsersLambda --> DDB
+    PayLambda --> DDB
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+---
 
-## Contributing
+## Core Capabilities
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. **Event Scheduling & Governance:**
+   - Event creation with capacity limits, scheduled start date and hour, dynamic ticket pricing, and banking payment destination coordinates.
+   - Lifecycle state toggles (`enabled` / `disabled` / `cancelled`).
 
-## Code of Conduct
+2. **Public Self-Registration & Referrals:**
+   - Public-facing attendee enrollment form (`/records-create/{pk}`) with scholarship requests and payment receipt upload.
+   - Viral peer invitation: sends direct event registration invitations to referred friends via email.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+3. **Automated PDF Ticket Passes & Email Delivery:**
+   - Generates high-resolution vector QR code access passes uniquely encoded with attendee partition keys.
+   - Converts passes into standalone PDF ticket documents via **DomPDF** and automatically emails them as attachments upon registration.
 
-## Security Vulnerabilities
+4. **In-Browser Live Camera QR Scanner:**
+   - Powered by `Instascan.js` directly within the browser (`/scanner-show`).
+   - Accesses device camera streams (supporting rear camera auto-detection on mobile devices) to scan physical or mobile attendee QR tickets at venue doors.
+   - Instant verification and state transition (`not-attend` ➡️ `attend`) with zero external hardware required.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+5. **Financial & Attendee Reconciliation:**
+   - Administrative review of attendee rosters per event (`/events-attendees/{id}`).
+   - Payment status auditing (`not-payed` ➡️ `paid`) with on-screen payment receipt proof inspection.
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Clean Architecture Directory Structure
+
+The project decouples framework delivery mechanisms from core application logic through strict interface boundaries:
+
+```
+events-portal-web/
+├── app/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       ├── Attendee/           # Payment reconciliation controllers
+│   │       ├── Events/             # Event management single-action controllers
+│   │       ├── Records/            # Public registration & ticket generation controllers
+│   │       ├── Scanner/            # Live video QR scanner controller
+│   │       └── Users/              # User administration & QR validation controllers
+│   ├── Repositories/
+│   │   ├── Contracts/              # Repository interfaces
+│   │   │   ├── Events/EventRepositoryInterface.php
+│   │   │   └── Users/UserRepositoryInterface.php
+│   │   ├── Events/EventRepository.php # HTTP integration with Go Serverless microservices
+│   │   └── Users/UserRepository.php
+│   ├── UsesCases/
+│   │   ├── Contracts/              # Use case interfaces
+│   │   └── Events/ & Users/        # Orchestrated business logic
+│   └── Providers/
+│       ├── RepositoriesServiceProvider.php # IoC binding for repositories
+│       └── UseCaseServiceProvider.php      # IoC binding for application use cases
+├── config/
+│   └── services.php                # Microservice endpoints configuration
+├── resources/
+│   └── views/                      # Blade templates (Dashboard, Scanner, PDF Tickets)
+└── routes/
+    └── web.php                     # Route definitions
+```
+
+---
+
+## Microservices Integration Matrix
+
+`EventRepository` communicates with the following endpoints exposed by `go-serverless-events-api`:
+
+| Operation | Microservice URL Config | Request Method | Payload / Query |
+|---|---|---|---|
+| Query Catalog | `services.events_api.show` | `GET` | `?param=EVENT` |
+| Create Event / Attendee | `services.events_api.create` | `POST` | Event or Attendee JSON entity |
+| Update Event Status | `services.events_api.change_status` | `POST` / `PATCH` | `{"pk": "...", "sk": "...", "status": "..."}` |
+| Query Event Attendees | `services.events_api.event_users` | `GET` | `?param={eventID}` |
+| Update Payment Status | `services.events_api.change_pay_status` | `POST` / `PATCH` | `{"pk": "...", "sk": "...", "status": "PAID"}` |
+
+---
+
+## Setup & Local Development
+
+### Prerequisites
+- PHP 8.1+ with extensions: `pdo_mysql`, `openssl`, `mbstring`, `gd`
+- Composer 2.x
+- Node.js 18+ and npm
+- MySQL / MariaDB (or SQLite for testing)
+
+### Installation Steps
+
+1. **Clone the repository:**
+   ```bash
+   git clone git@github.com:KevinAndrey96/events-portal-web.git
+   cd events-portal-web
+   ```
+
+2. **Install PHP and Node dependencies:**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   Update `.env` with your database credentials and the deployed API Gateway endpoint URLs for the Go serverless microservices.
+
+4. **Run Database Migrations & Seeders:**
+   ```bash
+   php artisan migrate --seed
+   ```
+
+5. **Link Storage & Build Frontend Assets:**
+   ```bash
+   php artisan storage:link
+   npm run build
+   ```
+
+6. **Start Local Development Server:**
+   ```bash
+   php artisan serve
+   ```
+   Open `http://127.0.0.1:8000` in your browser.
+
+---
+
+## Author
+**Kevin Andrey Herrera Silva**
+- GitHub: [@KevinAndrey96](https://github.com/KevinAndrey96)
+- LinkedIn: [Kevin Andrey Herrera Silva](https://www.linkedin.com/in/kevinandrey96/)

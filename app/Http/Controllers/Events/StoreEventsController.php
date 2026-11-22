@@ -1,15 +1,31 @@
 <?php
 
 namespace App\Http\Controllers\Events;
-use Webpatser\Uuid\Uuid;
-use GuzzleHttp\Client;
+
 use App\Http\Controllers\Controller;
+use App\Repositories\Contracts\Events\EventRepositoryInterface;
 use Illuminate\Http\Request;
+use Webpatser\Uuid\Uuid;
 
 class StoreEventsController extends Controller
 {
+    private EventRepositoryInterface $eventRepository;
+
+    public function __construct(EventRepositoryInterface $eventRepository)
+    {
+        $this->eventRepository = $eventRepository;
+    }
+
     public function __invoke(Request $request)
     {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'capacity' => 'required',
+            'date' => 'required|date',
+            'hour' => 'required',
+            'price' => 'required',
+        ]);
+
         $data = [
             "pk" => "Event#".substr(''.Uuid::generate(), 0, 6),
             "sk" => "METADATA#EVENT",
@@ -20,16 +36,17 @@ class StoreEventsController extends Controller
             "price" => strval($request->input('price')),
             "status" => 'enabled',
             "bank" => strval($request->input('bank')),
-            "account" => strval($request->input('account'))
+            "account" => strval($request->input('account')),
         ];
 
-        json_encode($data);
+        $success = $this->eventRepository->createItem($data);
 
-        $client = new Client();
-        $response = $client->post(strval(getenv('URL_CREATE_EVENTS')), [
-            'json' => $data,
-        ]);
+        if (!$success) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'No se pudo registrar el evento. Por favor intente nuevamente.');
+        }
 
-        return redirect()->route('events.index')->with('eventRegistered', 'Evento registrado');
+        return redirect()->route('events.index')->with('eventRegistered', 'Evento registrado con éxito');
     }
 }
